@@ -123,6 +123,23 @@ export default function Home() {
         reaches 35%. Screen checks are the number of the 8 screen checks each stock passes. Rank is by checks passed,
         then by screen margin of safety.
       </p>
+
+      <h2>What the 8 screen checks test</h2>
+      <ol className="checks">
+        <li><strong>Return on equity.</strong> ROE is at least 15% in every one of the last five years.</li>
+        <li><strong>Profitable EPS.</strong> Diluted EPS is positive in every one of the last five years.</li>
+        <li><strong>Owner earnings.</strong> Operating cash flow minus capital spending is positive in every one of the last five years.</li>
+        <li><strong>Debt payback.</strong> Long-term debt is no more than four years of net income.</li>
+        <li><strong>Margin of safety.</strong> The screen's DCF value is at least 25% above the price.</li>
+        <li><strong>Earnings growth.</strong> Five-year EPS growth is between 10% and 30% a year.</li>
+        <li><strong>PEG.</strong> The price-to-earnings ratio divided by the growth rate is 1 or less.</li>
+        <li><strong>Debt to equity.</strong> Total debt is no more than equity.</li>
+      </ol>
+      <p className="note">
+        These are mechanical tests on reported SEC figures, not an assessment of the business. A stock can pass all eight
+        and still be a poor investment, and a stock can fail one for a reason that does not matter. Each check has a
+        threshold that can be changed.
+      </p>
     </>
   );
 }
