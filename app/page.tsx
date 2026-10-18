@@ -1,88 +1,77 @@
-import { loadMemos, upsidePct } from "@/lib/memos";
+import { loadCompanies, money } from "@/lib/research";
+import { loadMemos } from "@/lib/memos";
 import { loadScreen } from "@/lib/screen";
-import { pct } from "@/lib/research";
+
+/* Ranking home page. Each row opens the company's full memo, or its full research page where no memo exists. */
 
 export default function Home() {
+  const companies = loadCompanies();
   const memos = loadMemos();
   const screen = loadScreen();
-  const top = screen.rows.slice(0, 10);
-  const memoTickers = new Set(memos.map((m) => m.ticker));
+
+  const adbe = companies.find((c) => c.ticker === "ADBE");
+  const deck = companies.find((c) => c.ticker === "DECK");
+  const g = memos.find((m) => m.ticker === "G");
+  const hrmy = memos.find((m) => m.ticker === "HRMY");
+  const gChecks = screen.rows.find((r) => r.ticker === "G")?.checks;
+  const hrmyChecks = screen.rows.find((r) => r.ticker === "HRMY")?.checks;
+
+  const rows = [
+    deck && {
+      ticker: "DECK",
+      name: deck.company_name,
+      score: `${deck.scores?.overall_score ?? "—"}`,
+      scale: "/ 100",
+      href: "/companies/deck/",
+    },
+    adbe && {
+      ticker: "ADBE",
+      name: adbe.company_name,
+      score: `${adbe.scores?.overall_score ?? "—"}`,
+      scale: "/ 100",
+      href: "/companies/adbe/",
+    },
+    g && {
+      ticker: "G",
+      name: "Genpact",
+      score: `${gChecks ?? "—"}`,
+      scale: "/ 8",
+      href: `/memos/${g.slug}/`,
+    },
+    hrmy && {
+      ticker: "HRMY",
+      name: "Harmony Biosciences",
+      score: `${hrmyChecks ?? "—"}`,
+      scale: "/ 8",
+      href: `/memos/${hrmy.slug}/`,
+    },
+  ].filter(Boolean) as { ticker: string; name: string; score: string; scale: string; href: string }[];
 
   return (
     <>
-      <p className="kicker">Research overview</p>
-      <h1>Ranking and full memos</h1>
-      <p className="lede">
-        Stocks that pass the Buffett-style or Lynch-style screen are ranked by how many quality, growth, debt, and value checks they pass. Full
-        memos go deeper on the names that look most interesting.
-      </p>
-
-      <div className="stats">
-        <div className="stat"><div className="k">Stocks ranked</div><div className="v">{screen.count}</div></div>
-        <div className="stat"><div className="k">Full memos</div><div className="v">{memos.length}</div></div>
-        <div className="stat"><div className="k">Checks per stock</div><div className="v">8</div></div>
-        <div className="stat"><div className="k">Price data</div><div className="v" style={{ fontSize: 15 }}>Oct. 16, 2026</div></div>
-      </div>
-
-      <h2>Full memos</h2>
-      <div className="grid">
-        {memos.map((m) => {
-          const up = upsidePct(m);
-          const tone = m.classification.startsWith("Attractive") ? "good" : "warn";
-          return (
-            <a className="card" href={`/memos/${m.slug}/`} key={m.slug}>
-              <div className="ticker">{m.ticker}</div>
-              <div className="name">{m.name}</div>
-              <span className={`badge ${tone}`} style={{ alignSelf: "flex-start" }}>{m.classification}</span>
-              <div className="row"><span className="muted">Price</span><span>${m.price.toFixed(2)}</span></div>
-              <div className="row"><span className="muted">Base value</span><span>${m.base_value.toFixed(2)}</span></div>
-              <div className="row"><span className="muted">Upside to base</span><span className={up >= 0 ? "pos" : "neg"}>{pct(up)}</span></div>
-              <div className="row"><span className="muted">Data as of</span><span>{m.data_date}</span></div>
-            </a>
-          );
-        })}
-      </div>
-
-      <h2>Top ten by screen</h2>
+      <h1>Ranking</h1>
       <div className="tbl-wrap">
         <table>
           <thead>
             <tr>
               <th className="n">Rank</th>
-              <th>Ticker</th>
               <th>Company</th>
-              <th className="n">Checks</th>
-              <th className="n">Price</th>
-              <th className="n">Margin of safety</th>
-              <th>Research</th>
             </tr>
           </thead>
           <tbody>
-            {top.map((r) => (
+            {rows.map((r, i) => (
               <tr key={r.ticker}>
-                <td className="n">{r.rank}</td>
-                <td><strong>{r.ticker}</strong></td>
-                <td>{r.name}</td>
-                <td className="n">{r.checks}/8</td>
-                <td className="n">{r.price == null ? "—" : `$${r.price.toFixed(2)}`}</td>
-                <td className={`n ${r.margin_of_safety == null ? "" : r.margin_of_safety >= 0 ? "pos" : "neg"}`}>
-                  {r.margin_of_safety == null ? "—" : pct(r.margin_of_safety * 100, 0)}
-                </td>
+                <td className="n">{i + 1}</td>
                 <td>
-                  {memoTickers.has(r.ticker) ? (
-                    <a href={`/memos/${memos.find((m) => m.ticker === r.ticker)!.slug}/`}>Full memo</a>
-                  ) : (
-                    <span className="muted">Screen only</span>
-                  )}
+                  <a href={r.href} style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+                    <strong>{r.ticker}</strong> <span className="muted">{r.name}</span>
+                  </a>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <p className="note">
-        Showing 10 of {screen.count}. <a href="/ranking/">See the full ranking, search, and filters →</a>
-      </p>
     </>
   );
 }

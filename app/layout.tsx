@@ -19,11 +19,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <small>See clearly. Invest deliberately.</small>
           </a>
           <nav aria-label="Primary">
-            <a href="/ranking/">Ranking</a>
-            <a href="/memos/intu/">Memos</a>
+            <a href="/">Ranking</a>
             <a href="#ask">Ask</a>
-            <a href="https://github.com/ngkenzy/solpient-money" target="_blank" rel="noopener noreferrer">Solpient Finance</a>
-            <a href="https://github.com/ngkenzy/solpient-research" target="_blank" rel="noopener noreferrer">Source</a>
+            <a href="https://money.phnguyen.com" target="_blank" rel="noopener noreferrer">Solpient Finance</a>
           </nav>
         </header>
         <main>{children}</main>
