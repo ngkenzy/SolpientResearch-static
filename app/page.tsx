@@ -2,7 +2,6 @@ import { loadCompanies, money, pct } from "@/lib/research";
 import { loadMemos } from "@/lib/memos";
 import { loadScreen } from "@/lib/screen";
 import fs from "node:fs";
-import { Bars3D } from "@/components/Bars3D";
 import path from "node:path";
 
 /* Ranking home page. Each row opens the company's full memo, or its full research page where no memo exists. */
@@ -82,13 +81,6 @@ export default function Home() {
   return (
     <>
       <h1>Ranking</h1>
-      <Bars3D
-        title="Margin of safety to base value"
-        bars={rows.map((r) => ({
-          ticker: r.ticker,
-          value: r.price != null && r.base != null && r.base > 0 ? 1 - r.price / r.base : null,
-        }))}
-      />
       <p className="lede" style={{ marginBottom: 14 }}>
         Prices as of the Oct. 16, 2026 close for all four picks. Click any row to open its memo or research page.
       </p>

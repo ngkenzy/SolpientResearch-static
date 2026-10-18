@@ -205,25 +205,6 @@ tr:last-child td { border-bottom: 0; }
 .checks { max-width: 70ch; padding-left: 22px; margin: 0 0 14px; }
 .checks li { margin-bottom: 8px; }
 
-/* 3D margin-of-safety chart (CSS transforms) and colored ranking rows */
-.scene3d { perspective: 900px; background: linear-gradient(180deg, var(--panel), var(--canvas)); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px 12px; margin: 0 0 18px; }
-.scene3d-title { font: 600 12px/1.2 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
-.bars3d { display: flex; align-items: flex-end; justify-content: space-around; gap: 14px; height: 210px; transform-style: preserve-3d; transform: rotateX(14deg); }
-.bar3d-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; width: 64px; }
-.bar3d-val { font: 600 13px/1 var(--sans); margin-bottom: 6px; font-variant-numeric: tabular-nums; }
-.bar3d-track { height: 150px; width: 44px; display: flex; align-items: flex-end; transform-style: preserve-3d; }
-.bar3d { position: relative; width: 44px; transform-style: preserve-3d; transform: rotateY(-22deg); transition: transform .3s; }
-.bar3d:hover { transform: rotateY(-8deg) translateY(-3px); }
-.bar3d-face { position: absolute; display: block; }
-.bar3d-face.front { inset: 0; border-radius: 4px 4px 2px 2px; background: var(--bar-c); }
-.bar3d-face.top { left: 0; right: 0; top: -10px; height: 10px; background: color-mix(in srgb, var(--bar-c) 70%, #fff); transform: skewX(-45deg); transform-origin: bottom; left: 0; width: 100%; }
-.bar3d-face.side { top: 0; bottom: 0; right: -10px; width: 10px; background: color-mix(in srgb, var(--bar-c) 60%, #000); transform: skewY(-45deg); transform-origin: left; }
-.bar3d-label { font: 600 12px/1 var(--mono); margin-top: 8px; }
-.tone-high { --bar-c: #2f8d68; }
-.tone-mid { --bar-c: #2878df; }
-.tone-low { --bar-c: #d9932c; }
-.tone-neg { --bar-c: #c4484c; }
-.tone-none { --bar-c: #8a99ad; }
 .rank-row.checks-8 td:first-child { box-shadow: inset 4px 0 0 #2f8d68; }
 .rank-row.checks-7 td:first-child { box-shadow: inset 4px 0 0 #2878df; }
 .rank-row.checks-6 td:first-child { box-shadow: inset 4px 0 0 #2a9d8f; }
