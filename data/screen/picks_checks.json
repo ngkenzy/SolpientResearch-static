@@ -1,0 +1,15 @@
+{
+ "checks": {
+  "DECK": 3,
+  "ADBE": 7,
+  "G": 8,
+  "HRMY": 7
+ },
+ "computed": "Oct. 2026 screen run, same 8 checks as the ranking",
+ "screen_margin_of_safety": {
+  "ADBE": 0.3674,
+  "G": 0.4339,
+  "HRMY": 0.4775,
+  "DECK": -0.4577
+ }
+}

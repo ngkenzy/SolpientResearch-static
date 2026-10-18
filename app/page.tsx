@@ -1,6 +1,8 @@
 import { loadCompanies, money, pct } from "@/lib/research";
 import { loadMemos } from "@/lib/memos";
 import { loadScreen } from "@/lib/screen";
+import fs from "node:fs";
+import path from "node:path";
 
 /* Ranking home page. Each row opens the company's full memo, or its full research page where no memo exists. */
 
@@ -19,18 +21,19 @@ export default function Home() {
   const memos = loadMemos();
   const screen = loadScreen();
 
+  const picks = JSON.parse(
+    fs.readFileSync(path.join(process.cwd(), "data", "screen", "picks_checks.json"), "utf8"),
+  ) as { checks: Record<string, number>; screen_margin_of_safety: Record<string, number> };
   const adbe = companies.find((c) => c.ticker === "ADBE");
   const deck = companies.find((c) => c.ticker === "DECK");
   const g = memos.find((m) => m.ticker === "G");
   const hrmy = memos.find((m) => m.ticker === "HRMY");
-  const gChecks = screen.rows.find((r) => r.ticker === "G")?.checks;
-  const hrmyChecks = screen.rows.find((r) => r.ticker === "HRMY")?.checks;
 
   const rows: Row[] = [
     deck && {
       ticker: "DECK",
       name: deck.company_name,
-      score: `${deck.scores?.overall_score ?? "—"} / 100`,
+      score: `${picks.checks.DECK} / 8 checks`,
       price: deck.research.price_at_research ?? null,
       base: deck.valuations?.base_value ?? null,
       mos35: deck.valuations?.mos_35_price ?? null,
@@ -39,7 +42,7 @@ export default function Home() {
     adbe && {
       ticker: "ADBE",
       name: adbe.company_name,
-      score: `${adbe.scores?.overall_score ?? "—"} / 100`,
+      score: `${picks.checks.ADBE} / 8 checks`,
       price: adbe.research.price_at_research ?? null,
       base: adbe.valuations?.base_value ?? null,
       mos35: adbe.valuations?.mos_35_price ?? null,
@@ -48,7 +51,7 @@ export default function Home() {
     g && {
       ticker: "G",
       name: "Genpact",
-      score: `${gChecks ?? "—"} / 8 checks`,
+      score: `${picks.checks.G} / 8 checks`,
       price: g.price,
       base: g.base_value,
       mos35: 50.86,
@@ -57,13 +60,19 @@ export default function Home() {
     hrmy && {
       ticker: "HRMY",
       name: "Harmony Biosciences",
-      score: `${hrmyChecks ?? "—"} / 8 checks`,
+      score: `${picks.checks.HRMY} / 8 checks`,
       price: hrmy.price,
       base: hrmy.base_value,
       mos35: 77.5,
       href: `/memos/${hrmy.slug}/`,
     },
-  ].filter(Boolean) as Row[];
+  ]
+    .filter(Boolean)
+    .sort(
+      (a, b) =>
+        (picks.checks[b!.ticker] - picks.checks[a!.ticker]) ||
+        (picks.screen_margin_of_safety[b!.ticker] - picks.screen_margin_of_safety[a!.ticker]),
+    ) as Row[];
 
   return (
     <>
@@ -78,7 +87,7 @@ export default function Home() {
             <tr>
               <th className="n">Rank</th>
               <th>Company</th>
-              <th className="n">Score</th>
+              <th className="n">Screen checks</th>
               <th className="n">Price</th>
               <th className="n">Base value</th>
               <th className="n">Margin of safety</th>
