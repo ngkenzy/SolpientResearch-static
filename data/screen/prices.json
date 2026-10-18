@@ -1,0 +1,22 @@
+{
+ "as_of": "2026-10-17",
+ "prices": {
+  "DECK": {
+   "price": 85.71,
+   "date": "2026-10-16"
+  },
+  "ADBE": {
+   "price": 245.2,
+   "date": "2026-10-16"
+  },
+  "G": {
+   "price": 37.26,
+   "date": "2026-10-16"
+  },
+  "HRMY": {
+   "price": 37.95,
+   "date": "2026-10-16"
+  }
+ },
+ "source": "Yahoo Finance daily close"
+}

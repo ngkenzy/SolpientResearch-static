@@ -21,6 +21,10 @@ export default function Home() {
   const memos = loadMemos();
   const screen = loadScreen();
 
+  const prices = JSON.parse(
+    fs.readFileSync(path.join(process.cwd(), "data", "screen", "prices.json"), "utf8"),
+  ) as { as_of: string; prices: Record<string, { price: number; date: string }> };
+  const priceOf = (t: string, fallback: number | null) => prices.prices[t]?.price ?? fallback;
   const picks = JSON.parse(
     fs.readFileSync(path.join(process.cwd(), "data", "screen", "picks_checks.json"), "utf8"),
   ) as { checks: Record<string, number>; screen_margin_of_safety: Record<string, number> };
@@ -34,7 +38,7 @@ export default function Home() {
       ticker: "DECK",
       name: deck.company_name,
       score: `${picks.checks.DECK} / 8 checks`,
-      price: deck.research.price_at_research ?? null,
+      price: priceOf("DECK", deck.research.price_at_research ?? null),
       base: deck.valuations?.base_value ?? null,
       mos35: deck.valuations?.mos_35_price ?? null,
       href: "/companies/deck/",
@@ -43,7 +47,7 @@ export default function Home() {
       ticker: "ADBE",
       name: adbe.company_name,
       score: `${picks.checks.ADBE} / 8 checks`,
-      price: adbe.research.price_at_research ?? null,
+      price: priceOf("ADBE", adbe.research.price_at_research ?? null),
       base: adbe.valuations?.base_value ?? null,
       mos35: adbe.valuations?.mos_35_price ?? null,
       href: "/companies/adbe/",
@@ -52,7 +56,7 @@ export default function Home() {
       ticker: "G",
       name: "Genpact",
       score: `${picks.checks.G} / 8 checks`,
-      price: g.price,
+      price: priceOf("G", g.price),
       base: g.base_value,
       mos35: 50.86,
       href: `/memos/${g.slug}/`,
@@ -61,7 +65,7 @@ export default function Home() {
       ticker: "HRMY",
       name: "Harmony Biosciences",
       score: `${picks.checks.HRMY} / 8 checks`,
-      price: hrmy.price,
+      price: priceOf("HRMY", hrmy.price),
       base: hrmy.base_value,
       mos35: 77.5,
       href: `/memos/${hrmy.slug}/`,
@@ -78,8 +82,7 @@ export default function Home() {
     <>
       <h1>Ranking</h1>
       <p className="lede" style={{ marginBottom: 14 }}>
-        Prices as of the Oct. 16, 2026 close for G and HRMY. DECK and ADBE use prices from their Sept. 20, 2026 research.
-        Click any row to open its memo or research page.
+        Prices as of the Oct. 16, 2026 close for all four picks. Click any row to open its memo or research page.
       </p>
       <div className="tbl-wrap">
         <table>
