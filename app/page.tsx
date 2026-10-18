@@ -1,8 +1,18 @@
-import { loadCompanies, money } from "@/lib/research";
+import { loadCompanies, money, pct } from "@/lib/research";
 import { loadMemos } from "@/lib/memos";
 import { loadScreen } from "@/lib/screen";
 
 /* Ranking home page. Each row opens the company's full memo, or its full research page where no memo exists. */
+
+type Row = {
+  ticker: string;
+  name: string;
+  score: string;
+  price: number | null;
+  base: number | null;
+  mos35: number | null;
+  href: string;
+};
 
 export default function Home() {
   const companies = loadCompanies();
@@ -16,36 +26,44 @@ export default function Home() {
   const gChecks = screen.rows.find((r) => r.ticker === "G")?.checks;
   const hrmyChecks = screen.rows.find((r) => r.ticker === "HRMY")?.checks;
 
-  const rows = [
+  const rows: Row[] = [
     deck && {
       ticker: "DECK",
       name: deck.company_name,
-      score: `${deck.scores?.overall_score ?? "—"}`,
-      scale: "/ 100",
+      score: `${deck.scores?.overall_score ?? "—"} / 100`,
+      price: deck.research.price_at_research ?? null,
+      base: deck.valuations?.base_value ?? null,
+      mos35: deck.valuations?.mos_35_price ?? null,
       href: "/companies/deck/",
     },
     adbe && {
       ticker: "ADBE",
       name: adbe.company_name,
-      score: `${adbe.scores?.overall_score ?? "—"}`,
-      scale: "/ 100",
+      score: `${adbe.scores?.overall_score ?? "—"} / 100`,
+      price: adbe.research.price_at_research ?? null,
+      base: adbe.valuations?.base_value ?? null,
+      mos35: adbe.valuations?.mos_35_price ?? null,
       href: "/companies/adbe/",
     },
     g && {
       ticker: "G",
       name: "Genpact",
-      score: `${gChecks ?? "—"}`,
-      scale: "/ 8",
+      score: `${gChecks ?? "—"} / 8 checks`,
+      price: g.price,
+      base: g.base_value,
+      mos35: 50.86,
       href: `/memos/${g.slug}/`,
     },
     hrmy && {
       ticker: "HRMY",
       name: "Harmony Biosciences",
-      score: `${hrmyChecks ?? "—"}`,
-      scale: "/ 8",
+      score: `${hrmyChecks ?? "—"} / 8 checks`,
+      price: hrmy.price,
+      base: hrmy.base_value,
+      mos35: 77.5,
       href: `/memos/${hrmy.slug}/`,
     },
-  ].filter(Boolean) as { ticker: string; name: string; score: string; scale: string; href: string }[];
+  ].filter(Boolean) as Row[];
 
   return (
     <>
@@ -56,22 +74,42 @@ export default function Home() {
             <tr>
               <th className="n">Rank</th>
               <th>Company</th>
+              <th className="n">Score</th>
+              <th className="n">Price</th>
+              <th className="n">Base value</th>
+              <th className="n">Margin of safety</th>
+              <th className="n">35% MoS price</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((r, i) => (
-              <tr key={r.ticker}>
-                <td className="n">{i + 1}</td>
-                <td>
-                  <a href={r.href} style={{ textDecoration: "none", color: "inherit", display: "block" }}>
-                    <strong>{r.ticker}</strong> <span className="muted">{r.name}</span>
-                  </a>
-                </td>
-              </tr>
-            ))}
+            {rows.map((r, i) => {
+              const margin = r.price != null && r.base != null && r.base > 0 ? 1 - r.price / r.base : null;
+              return (
+                <tr key={r.ticker}>
+                  <td className="n">{i + 1}</td>
+                  <td>
+                    <a href={r.href} style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+                      <strong>{r.ticker}</strong> <span className="muted">{r.name}</span>
+                    </a>
+                  </td>
+                  <td className="n">{r.score}</td>
+                  <td className="n">{money(r.price)}</td>
+                  <td className="n">{money(r.base)}</td>
+                  <td className={`n ${margin == null ? "" : margin >= 0 ? "pos" : "neg"}`}>
+                    {margin == null ? "—" : pct(margin * 100)}
+                  </td>
+                  <td className="n">{money(r.mos35)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
+      <p className="note">
+        Margin of safety is 1 minus price divided by base value. The 35% MoS price is the price at which the margin
+        reaches 35%. Scores use different scales: published research scores are out of 100, and screen scores count
+        passed checks out of 8.
+      </p>
     </>
   );
 }
