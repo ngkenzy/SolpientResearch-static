@@ -68,6 +68,10 @@ export default function Home() {
   return (
     <>
       <h1>Ranking</h1>
+      <p className="lede" style={{ marginBottom: 14 }}>
+        Prices as of the Oct. 16, 2026 close for G and HRMY. DECK and ADBE use prices from their Sept. 20, 2026 research.
+        Click any row to open its memo or research page.
+      </p>
       <div className="tbl-wrap">
         <table>
           <thead>
@@ -85,20 +89,20 @@ export default function Home() {
             {rows.map((r, i) => {
               const margin = r.price != null && r.base != null && r.base > 0 ? 1 - r.price / r.base : null;
               return (
-                <tr key={r.ticker}>
-                  <td className="n">{i + 1}</td>
+                <tr key={r.ticker} className="rank-row">
+                  <td className="n"><a className="rank-cell" href={r.href}>{i + 1}</a></td>
                   <td>
-                    <a href={r.href} style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+                    <a className="rank-cell" href={r.href}>
                       <strong>{r.ticker}</strong> <span className="muted">{r.name}</span>
                     </a>
                   </td>
-                  <td className="n">{r.score}</td>
-                  <td className="n">{money(r.price)}</td>
-                  <td className="n">{money(r.base)}</td>
-                  <td className={`n ${margin == null ? "" : margin >= 0 ? "pos" : "neg"}`}>
+                  <td className="n"><a className="rank-cell n" href={r.href}>{r.score}</a></td>
+                  <td className="n"><a className="rank-cell n" href={r.href}>{money(r.price)}</a></td>
+                  <td className="n"><a className="rank-cell n" href={r.href}>{money(r.base)}</a></td>
+                  <td className="n"><a className={`rank-cell n ${margin == null ? "" : margin >= 0 ? "pos" : "neg"}`} href={r.href}>
                     {margin == null ? "—" : pct(margin * 100)}
-                  </td>
-                  <td className="n">{money(r.mos35)}</td>
+                  </a></td>
+                  <td className="n"><a className="rank-cell n" href={r.href}>{money(r.mos35)}</a></td>
                 </tr>
               );
             })}
