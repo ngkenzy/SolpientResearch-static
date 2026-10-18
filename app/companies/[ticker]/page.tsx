@@ -240,7 +240,7 @@ export default async function CompanyPage({ params }: PageProps) {
               </thead>
               <tbody>
                 {company.expected_return_scenarios!.map((r) => (
-                  <tr key={r.scenario}>
+                  <tr key={`${r.scenario}-${r.horizon_years}`}>
                     <td style={{ textTransform: "capitalize" }}>{r.scenario}</td>
                     <td className="num">{r.horizon_years ? `${r.horizon_years}y` : "—"}</td>
                     <td className="num">{pct(r.expected_cagr ?? null)}</td>
