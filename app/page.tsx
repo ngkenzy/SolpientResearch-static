@@ -120,8 +120,8 @@ export default function Home() {
       </div>
       <p className="note">
         Margin of safety is 1 minus price divided by base value. The 35% MoS price is the price at which the margin
-        reaches 35%. Scores use different scales: published research scores are out of 100, and screen scores count
-        passed checks out of 8.
+        reaches 35%. Screen checks are the number of the 8 screen checks each stock passes. Rank is by checks passed,
+        then by screen margin of safety.
       </p>
     </>
   );
