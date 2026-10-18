@@ -1,0 +1,41 @@
+[
+  {
+    "slug": "intu",
+    "ticker": "INTU",
+    "name": "Intuit",
+    "classification": "Attractive below $349",
+    "price": 325.15,
+    "base_value": 537,
+    "bear_value": 289,
+    "bull_value": 806,
+    "cagr_5y_base": 8.9,
+    "data_date": "2026-10-16",
+    "summary": "Strong business with a narrowing moat. Base value depends on AI not eroding TurboTax; expected return is close to an index unless the bull case plays out."
+  },
+  {
+    "slug": "genpact",
+    "ticker": "G",
+    "name": "Genpact",
+    "classification": "Attractive below $51",
+    "price": 37.26,
+    "base_value": 78.24,
+    "bear_value": 39.93,
+    "bull_value": 122.46,
+    "cagr_5y_base": 10.1,
+    "data_date": "2026-10-16",
+    "summary": "Steady growth at about 9x guided EPS. Base value depends on margins holding while AI changes services pricing. Q3 2026 results on Nov. 5 are the next checkpoint."
+  },
+  {
+    "slug": "harmony",
+    "ticker": "HRMY",
+    "name": "Harmony Biosciences",
+    "classification": "Not classified",
+    "price": 37.95,
+    "base_value": 119.23,
+    "bear_value": 56.53,
+    "bull_value": 196.22,
+    "cagr_5y_base": 15.6,
+    "data_date": "2026-10-16",
+    "summary": "Strong cash flow from one product, WAKIX. Base value assumes exclusivity holds for ten years, which is unverified, so no classification is given."
+  }
+]
