@@ -1,58 +1,129 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
+import type { KnowledgeItem } from "@/lib/ask-knowledge";
 
-/* Local AI: the model runs in this browser through WebGPU (WebLLM). Nothing typed here is sent to a server. */
+/* Ask SOLPIENT: a floating assistant. Search over the published research always works. A small local model
+   (WebLLM, runs in this browser on WebGPU) can phrase answers when the visitor loads it. No question leaves the device. */
 
-const MODEL_ID = "Qwen2.5-3B-Instruct-q4f16_1-MLC";
 const WEBLLM_URL = "https://esm.run/@mlc-ai/web-llm@0.2.82";
-
-const EXAMPLES = [
-  "Which stocks pass the most checks, and what flags should I look at first?",
-  "What is the weakest part of the Genpact thesis?",
-  "Why is Harmony Biosciences not classified?",
-  "Explain the Intuit valuation range and its assumptions.",
+const PREFERRED_MODELS = [
+  "Qwen2.5-0.5B-Instruct-q4f16_1-MLC",
+  "Qwen2-0.5B-Instruct-q4f16_1-MLC",
+  "Llama-3.2-1B-Instruct-q4f16_1-MLC",
 ];
+const SUGGESTIONS = [
+  "Which stocks are on the top picks list?",
+  "Why is Harmony Biosciences not classified?",
+  "What is the Genpact classification?",
+  "How does the screen rank stocks?",
+];
+const REFUSAL = "That is not in the published research.";
+
+type Source = { source: string; url: string };
+type Msg = { role: "user" | "assistant"; text: string; sources?: Source[] };
+
+const STOP = new Set(["a", "an", "and", "are", "as", "at", "be", "by", "do", "does", "for", "how", "i", "in", "is", "it", "me", "of", "on", "or", "the", "to", "what", "which", "why", "with", "is", "this", "that", "was"]);
+
+function tokenize(text: string) {
+  return text.toLowerCase().replace(/[^a-z0-9&.+#-]+/g, " ").split(/\s+/).filter((t) => t.length > 1 && !STOP.has(t));
+}
+
+function retrieve(query: string, knowledge: KnowledgeItem[], count = 3) {
+  const q = tokenize(query);
+  const lower = query.toLowerCase();
+  const scored = knowledge.map((item) => {
+    let score = 0;
+    const title = item.title.toLowerCase();
+    const tags = item.tags.join(" ");
+    const body = item.text.toLowerCase();
+    for (const t of q) {
+      if (title.includes(t)) score += 6;
+      if (tags.includes(t)) score += 5;
+      if (body.includes(t)) score += 2;
+    }
+    for (const tag of item.tags) if (tag.length > 2 && lower.includes(tag)) score += 9;
+    return { item, score };
+  });
+  scored.sort((a, b) => b.score - a.score);
+  const positive = scored.filter((s) => s.score > 0);
+  return (positive.length ? positive : []).slice(0, count).map((s) => s.item);
+}
 
 type Engine = {
   chat: {
     completions: {
-      create: (args: {
-        messages: { role: "system" | "user"; content: string }[];
-        temperature?: number;
-      }) => Promise<{ choices: { message: { content: string } }[] }>;
+      create: (args: unknown) => Promise<AsyncIterable<{ choices: { delta?: { content?: string } }[] }>>;
     };
   };
 };
 
-export function AskPanel({ pack }: { pack: string }) {
-  const [supported, setSupported] = useState<boolean | null>(null);
+export function AskPanel({ knowledge }: { knowledge: KnowledgeItem[] }) {
+  const [open, setOpen] = useState(false);
   const [engine, setEngine] = useState<Engine | null>(null);
   const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState("");
-  const [question, setQuestion] = useState(EXAMPLES[0]);
-  const [answer, setAnswer] = useState("");
+  const [searchOnly, setSearchOnly] = useState(false);
+  const [status, setStatus] = useState("Search mode");
+  const [progress, setProgress] = useState(0);
+  const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const [msgs, setMsgs] = useState<Msg[]>([
+    {
+      role: "assistant",
+      text: "I answer from the published SOLPIENT research: memos, research files, and the screen ranking. Ask a question, or load the local model to get fuller answers.",
+    },
+  ]);
+  const logRef = useRef<HTMLDivElement>(null);
+  const hasGpu = typeof navigator !== "undefined" && Boolean((navigator as Navigator & { gpu?: unknown }).gpu);
 
   useEffect(() => {
-    setSupported(Boolean((navigator as Navigator & { gpu?: unknown }).gpu));
+    const sync = () => setOpen(window.location.hash === "#ask");
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
   }, []);
 
-  async function load() {
+  useEffect(() => {
+    logRef.current?.scrollTo({ top: logRef.current.scrollHeight });
+  }, [msgs]);
+
+  function close() {
+    setOpen(false);
+    if (window.location.hash === "#ask") history.replaceState(null, "", window.location.pathname);
+  }
+
+  async function loadModel() {
+    if (loading || engine) return;
+    if (!hasGpu) {
+      setSearchOnly(true);
+      setStatus("Search mode");
+      setMsgs((m) => [...m, { role: "assistant", text: "This browser has no WebGPU support, so the local model cannot run. Search still works." }]);
+      return;
+    }
     setLoading(true);
-    setError("");
+    setStatus("Loading local AI");
     try {
       const specifier: string = WEBLLM_URL;
       const webllm: any = await import(/* webpackIgnore: true */ specifier);
-      const eng: Engine = await webllm.CreateMLCEngine(MODEL_ID, {
-        initProgressCallback: (r: { progress?: number; text?: string }) =>
-          setProgress(`${Math.round((r.progress ?? 0) * 100)}% ${r.text ?? ""}`.trim()),
+      const available: string[] = webllm.prebuiltAppConfig.model_list.map((m: { model_id: string }) => m.model_id);
+      const model =
+        PREFERRED_MODELS.find((id) => available.includes(id)) ??
+        available.find((id) => /0\.5B.*Instruct.*q4f16/i.test(id));
+      if (!model) throw new Error("No compact model available.");
+      const eng: Engine = await webllm.CreateMLCEngine(model, {
+        initProgressCallback: (r: { progress?: number; text?: string }) => {
+          setProgress(Math.round((r.progress ?? 0) * 100));
+          setStatus(`Loading local AI ${Math.round((r.progress ?? 0) * 100)}%`);
+        },
+        logLevel: "WARN",
       });
       setEngine(eng);
-      setProgress("Ready");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not load the local model.");
+      setStatus("Local AI ready");
+      setMsgs((m) => [...m, { role: "assistant", text: "Local AI is ready. Ask about the research." }]);
+    } catch {
+      setSearchOnly(true);
+      setStatus("Search mode");
+      setMsgs((m) => [...m, { role: "assistant", text: "The local model could not load on this device. Search is ready instead." }]);
     } finally {
       setLoading(false);
     }
@@ -60,83 +131,121 @@ export function AskPanel({ pack }: { pack: string }) {
 
   async function ask(event: FormEvent) {
     event.preventDefault();
-    if (!engine || !question.trim() || busy) return;
+    const question = input.trim();
+    if (!question || busy) return;
+    setInput("");
     setBusy(true);
-    setError("");
-    setAnswer("");
+    setMsgs((m) => [...m, { role: "user", text: question }]);
+
+    const results = retrieve(question, knowledge, 3);
+    const sources = results.map((r) => ({ source: r.source, url: r.url }));
+    const top = results[0]?.text ?? REFUSAL;
+
+    if (!engine || searchOnly) {
+      setMsgs((m) => [...m, { role: "assistant", text: results.length ? top : REFUSAL, sources }]);
+      setBusy(false);
+      return;
+    }
+
+    setMsgs((m) => [...m, { role: "assistant", text: "Thinking locally…" }]);
     try {
-      const result = await engine.chat.completions.create({
-        temperature: 0.2,
+      const context = results.map((r, i) => `[Source ${i + 1}: ${r.source}]\n${r.text}`).join("\n\n") || "(no matching records)";
+      const chunks = await engine.chat.completions.create({
+        temperature: 0.15,
+        top_p: 0.85,
+        max_tokens: 200,
+        stream: true,
         messages: [
           {
             role: "system",
             content:
-              "You are a research explanation assistant running locally in the user's browser. Use only the research pack below. " +
-              "If the pack does not support an answer, say the evidence is not in the pack. Do not invent numbers. " +
-              "Do not give personalized buy or sell instructions; explain the evidence and trade-offs instead.\n\nRESEARCH PACK:\n" +
-              pack,
+              "You are a research assistant on the SOLPIENT Research site. Answer ONLY from the supplied context. " +
+              `If the context does not support the answer, reply exactly: ${REFUSAL} ` +
+              "Use 1 to 4 short sentences. Do not invent numbers, dates, or recommendations. Do not give personalized buy or sell instructions.",
           },
-          { role: "user", content: question.trim() },
+          { role: "user", content: `CONTEXT:\n${context}\n\nQUESTION:\n${question}` },
         ],
       });
-      setAnswer(result.choices[0]?.message?.content ?? "No answer returned.");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "The model could not answer.");
+      let answer = "";
+      for await (const chunk of chunks) {
+        answer += chunk.choices[0]?.delta?.content ?? "";
+        setMsgs((m) => [...m.slice(0, -1), { role: "assistant", text: answer.trimStart() }]);
+      }
+      setMsgs((m) => [...m.slice(0, -1), { role: "assistant", text: answer.trim() || top, sources }]);
+    } catch {
+      setMsgs((m) => [
+        ...m.slice(0, -1),
+        { role: "assistant", text: top, sources },
+        { role: "assistant", text: "Local generation failed, so this answer comes from search." },
+      ]);
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div className="panel">
-      {supported === false && (
-        <div className="callout warn">
-          <p style={{ margin: 0 }}>
-            This browser has no WebGPU support, so the local model cannot run here. Try a recent desktop version of
-            Chrome or Edge.
-          </p>
-        </div>
-      )}
-
-      {supported !== false && !engine && (
-        <>
-          <p>
-            Loading the model downloads about 2 GB the first time, then it is cached in this browser. It runs on your
-            device, and your questions do not leave it.
-          </p>
-          <button type="button" className="btn" onClick={load} disabled={loading || supported === null}>
-            {loading ? "Loading model…" : "Load local AI"}
-          </button>
-          {progress && <p className="note" style={{ marginTop: 10 }}>{progress}</p>}
-        </>
-      )}
-
-      {engine && (
-        <form onSubmit={ask}>
-          <label htmlFor="q" className="kicker">Question</label>
-          <textarea
-            id="q"
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            rows={3}
-            className="input"
-            style={{ width: "100%", flex: "none", resize: "vertical" }}
-          />
-          <div className="toolbar" style={{ margin: "10px 0" }}>
-            <button type="submit" className="btn" disabled={busy}>
-              {busy ? "Thinking…" : "Ask"}
-            </button>
-            {EXAMPLES.map((ex) => (
-              <button type="button" key={ex} className="btn ghost" onClick={() => setQuestion(ex)} style={{ fontSize: 12 }}>
-                {ex.length > 46 ? `${ex.slice(0, 46)}…` : ex}
-              </button>
-            ))}
+    <>
+      <a className="ask-launch" href="#ask" aria-expanded={open} aria-controls="ask-panel">
+        Ask SOLPIENT
+      </a>
+      <section id="ask-panel" className={`ask-panel${open ? " is-open" : ""}`} aria-label="Ask SOLPIENT" aria-hidden={!open}>
+        <header className="ask-head">
+          <div>
+            <strong>Ask SOLPIENT</strong>
+            <span className={`ask-status${engine ? " is-ready" : searchOnly ? " is-search" : ""}`}>{status}</span>
           </div>
-          <div className="ask-log" aria-live="polite">{answer}</div>
-        </form>
-      )}
+          <button type="button" className="ask-close" onClick={close} aria-label="Close">×</button>
+        </header>
 
-      {error && <p className="neg" style={{ marginTop: 10 }}>{error}</p>}
-    </div>
+        {!engine && !searchOnly && (
+          <div className="ask-load">
+            <button type="button" className="btn" onClick={loadModel} disabled={loading}>
+              {loading ? `Loading ${progress}%` : "Load local AI"}
+            </button>
+            <p className="note" style={{ margin: "8px 0 0" }}>
+              About 300 MB, cached in this browser after the first load. Runs on your device. Questions stay here.
+            </p>
+            {loading && (
+              <div className="ask-progress" aria-hidden="true"><span style={{ width: `${Math.max(2, progress)}%` }} /></div>
+            )}
+          </div>
+        )}
+
+        <div className="ask-log" ref={logRef} aria-live="polite">
+          {msgs.map((m, i) => (
+            <div key={i} className={`ask-msg ${m.role}`}>
+              <div className="ask-bubble">
+                <div>{m.text}</div>
+                {m.sources && m.sources.length > 0 && (
+                  <div className="ask-sources">
+                    {m.sources.map((s) => (
+                      <a key={s.url + s.source} href={s.url}>{s.source}</a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="ask-suggest">
+          {SUGGESTIONS.map((s) => (
+            <button type="button" key={s} onClick={() => setInput(s)}>{s}</button>
+          ))}
+        </div>
+
+        <form className="ask-form" onSubmit={ask}>
+          <input
+            className="input"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask about a company, a memo, or the ranking"
+            aria-label="Question"
+            disabled={busy}
+          />
+          <button className="btn" type="submit" disabled={busy || !input.trim()}>Send</button>
+        </form>
+      </section>
+    </>
   );
 }

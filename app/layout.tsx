@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AskPanel } from "@/components/AskPanel";
+import { buildKnowledge } from "@/lib/ask-knowledge";
 
 export const metadata: Metadata = {
   title: "SOLPIENT Research",
@@ -7,6 +9,7 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const knowledge = buildKnowledge();
   return (
     <html lang="en">
       <body>
@@ -18,7 +21,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <nav aria-label="Primary">
             <a href="/ranking/">Ranking</a>
             <a href="/memos/intu/">Memos</a>
-            <a href="/ask/">Ask (local AI)</a>
+            <a href="#ask">Ask</a>
             <a href="https://github.com/ngkenzy/solpient-money" target="_blank" rel="noopener noreferrer">Solpient Finance</a>
             <a href="https://github.com/ngkenzy/solpient-research" target="_blank" rel="noopener noreferrer">Source</a>
           </nav>
@@ -30,6 +33,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             recommendation to buy or sell any security. Screen results are mechanical and unreviewed.
           </p>
         </footer>
+        <AskPanel knowledge={knowledge} />
       </body>
     </html>
   );
