@@ -12,7 +12,7 @@ export default function RankingPage() {
       <p className="kicker">Ranking</p>
       <h1>All screened stocks</h1>
       <p className="lede">
-        {screen.count} stocks from the S&amp;P 500, S&amp;P 400, and S&amp;P 600, with financials excluded. Each
+        {screen.count} stocks pass the Buffett-style or Lynch-style screen. They come from the S&amp;P 500, S&amp;P 400, and S&amp;P 600, with financials excluded. Each
         stock is scored on 8 checks: ROE, positive EPS, owner earnings, debt payback, margin of safety, EPS growth,
         PEG, and debt-to-equity. Ranking is by checks passed, then positive margin of safety, then margin size.
       </p>

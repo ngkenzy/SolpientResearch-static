@@ -13,7 +13,7 @@ export default function Home() {
       <p className="kicker">Research overview</p>
       <h1>Ranking and full memos</h1>
       <p className="lede">
-        Every screened stock is ranked by how many quality, growth, debt, and value checks it passes. Full
+        Stocks that pass the Buffett-style or Lynch-style screen are ranked by how many quality, growth, debt, and value checks they pass. Full
         memos go deeper on the names that look most interesting.
       </p>
 
